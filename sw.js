@@ -1,51 +1,14 @@
-const CACHE_NAME = 'family-asset-v1';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-];
-
-// Install
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS);
-    })
-  );
-  self.skipWaiting();
-});
-
-// Activate
-self.addEventListener('activate', event => {
-  event.waitUntil(
+// Service Worker - 캐시 없음 (항상 최신 파일 사용)
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', e => {
+  // 기존 캐시 전부 삭제
+  e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+      Promise.all(keys.map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
-
-// Fetch - Cache First, fallback to network
-self.addEventListener('fetch', event => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') return;
-  
-  // Skip cross-origin (fonts, etc.) - use network
-  if (!event.request.url.startsWith(self.location.origin)) {
-    event.respondWith(fetch(event.request).catch(() => new Response('')));
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        return response;
-      });
-    }).catch(() => {
-      return caches.match('./index.html');
-    })
-  );
+// 네트워크 우선 → 오프라인 fallback 없음 (항상 최신)
+self.addEventListener('fetch', e => {
+  e.respondWith(fetch(e.request).catch(() => new Response('오프라인 상태입니다')));
 });
