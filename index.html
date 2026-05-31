@@ -317,9 +317,9 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxqDaLSpNxl1ojc-rubF0-l
 // ═══════════════════════════════════════════════════════
 
 const KIND_COLORS = {
-  '커버드콜':'#378ADD','채권':'#16A085','배당':'#1D9E75',
+  '지수':'#378ADD','배당':'#1D9E75','채권':'#16A085',
   '금현물':'#EF9F27','테마':'#D4537E','TDF':'#7F77DD',
-  '달러':'#888780','지수':'#5DADE2','기타':'#B0ADA8'
+  '예금':'#5F5E5A','주식':'#D85A30','기타':'#B0ADA8'
 };
 const MEMBER_STYLE = {
   '김학관+이정주': { init:'학', color:'#185FA5', bg:'#E6F1FB' },
@@ -344,8 +344,9 @@ function renderTotal(d) {
   // 평가금액
   document.getElementById('t-eval').textContent = fmt(s.eval);
   document.getElementById('t-cost').textContent = fmt(s.cost);
-  document.getElementById('t-pnl').textContent  =
-    '+' + fmtNum(s.pnl) + ' (' + pctFmt(s.roi) + ')';
+  const tpnl = document.getElementById('t-pnl');
+  tpnl.textContent = (s.pnl >= 0 ? '+' : '') + fmtNum(s.pnl) + ' (' + pctFmt(s.roi) + ')';
+  tpnl.className = 'mc-eval-value ' + (s.pnl >= 0 ? 'cg' : 'cr');
 
   // 자산배분 막대
   document.getElementById('t-risk-fill').style.width = s.alloc.risk + '%';
@@ -431,7 +432,7 @@ function renderMembers(d) {
             </div>
             <div class="mc-eval-row">
               <div class="mc-eval-label">평가이익 (수익률)</div>
-              <div class="mc-eval-value cg">+${fmtNum(m.pnl)} (${pctFmt(m.roi)})</div>
+              <div class="mc-eval-value ${m.pnl >= 0 ? 'cg' : 'cr'}">${m.pnl >= 0 ? '+' : ''}${fmtNum(m.pnl)} (${pctFmt(m.roi)})</div>
             </div>
           </div>
         </div>
