@@ -543,7 +543,11 @@ async function loadData() {
 }
 
 // ── UI ─────────────────────────────────────────────────
+let curTab = 0;
+const TAB_COUNT = 3;
 function goTab(i) {
+  if (i < 0 || i > TAB_COUNT - 1) return;
+  curTab = i;
   document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
   document.querySelectorAll('.screen').forEach((s, j) => s.classList.toggle('active', j === i));
   window.scrollTo(0, 0);
@@ -555,9 +559,35 @@ function togKG(id) {
   c.classList.toggle('open', o);
 }
 
+// ── SWIPE: 탭 간 좌우 스와이프 ──────────────────────────
+function initSwipe() {
+  const area = document.querySelector('.content');
+  if (!area) return;
+  let sx = 0, sy = 0, tracking = false;
+
+  area.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    tracking = true;
+  }, { passive: true });
+
+  area.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    // 가로 이동이 세로보다 크고, 50px 이상일 때만 탭 전환 (세로 스크롤과 구분)
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) goTab(curTab + 1);  // 왼쪽으로 밀면 다음 탭
+    else        goTab(curTab - 1);  // 오른쪽으로 밀면 이전 탭
+  }, { passive: true });
+}
+
 // ── INIT ───────────────────────────────────────────────
 window.addEventListener('load', async () => {
   await loadData();
+  initSwipe();
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
 });
