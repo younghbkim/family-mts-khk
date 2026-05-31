@@ -59,18 +59,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .tab{flex:1;padding:10px 0;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;text-align:center}
 .tab.active{color:var(--blue);border-bottom-color:var(--blue-mid)}
 
-/* CONTENT & SWIPE */
-.content{flex:1;overflow:hidden;position:relative}
-.screens-wrap{display:flex;height:100%;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform}
-.screen{flex:0 0 100%;overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch;padding-bottom:20px;height:100%}
-/* Pull-to-refresh */
-.ptr-indicator{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;transition:height .2s;z-index:10;background:var(--bg)}
-.ptr-spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--blue-mid);border-radius:50%;animation:spin .7s linear infinite}
-.ptr-text{font-size:11px;color:var(--text3);margin-left:8px}
-/* Swipe hint dots */
-.swipe-dots{display:flex;justify-content:center;gap:6px;padding:6px 0 10px;flex-shrink:0;background:var(--bg)}
-.swipe-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);transition:all .2s}
-.swipe-dot.active{background:var(--blue-mid);width:16px}
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch;padding-bottom:20px}
+.screen{display:none}.screen.active{display:block;animation:fadeUp .2s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* ERROR BANNER */
@@ -153,6 +144,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 /* BOTTOM BAR */
 .bottom-bar{background:var(--card);border-top:0.5px solid var(--border);padding:7px 16px;display:flex;justify-content:space-between;font-size:10px;color:var(--text3);flex-shrink:0;padding-bottom:calc(7px + env(safe-area-inset-bottom))}
 
+/* AUTO ROWS */
+.auto-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.auto-row:last-child{border-bottom:none}
+.auto-row-left{flex:1;min-width:0;padding-right:10px}
+.auto-row-name{font-size:12px;color:var(--text);line-height:1.4}
+.auto-row-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.auto-row-amt{font-size:12px;font-weight:600;color:var(--text);flex-shrink:0}
+
 .cg{color:var(--green)}.cr{color:var(--red)}.cb{color:var(--blue)}.ca{color:var(--amber)}.cp{color:var(--purple)}
 </style>
 </head>
@@ -185,19 +184,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   <div class="tabs">
     <div class="tab active" onclick="goTab(0)">전체</div>
     <div class="tab" onclick="goTab(1)">구성원</div>
+    <div class="tab" onclick="goTab(2)">자동적립매수</div>
   </div>
 
-  <div class="content" id="content">
-    <div class="ptr-indicator" id="ptr-indicator">
-      <div class="ptr-spinner" id="ptr-spinner" style="display:none"></div>
-      <div class="ptr-text" id="ptr-text">↓ 당겨서 새로고침</div>
-    </div>
-    <div class="screens-wrap" id="screens-wrap">
-
-    <div class="err-banner" id="err-banner" style="position:sticky;top:0;z-index:5;margin:0 0 0 0"></div>
+  <div class="content">
+    <div class="err-banner" id="err-banner"></div>
 
     <!-- ① 전체 -->
-    <div class="screen" id="s0">
+    <div class="screen active" id="s0">
       <div class="notice">
         <div class="notice-icon">ℹ️</div>
         <div>ETF 현재가는 실시간으로 업데이트되지만, <strong>보유주식수 및 일반펀드 평가금액은 전월말 기준</strong> 정보입니다.</div>
@@ -276,14 +270,30 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
       <div id="members-list"></div>
     </div>
 
-    </div><!-- /screens-wrap -->
-  </div><!-- /content -->
+    <!-- ③ 자동적립 현황 -->
+    <div class="screen" id="s2">
+      <div class="notice">
+        <div class="notice-icon">ℹ️</div>
+        <div>매월 자동으로 매수되는 <strong>적립식 설정 현황</strong>입니다. 설정금액은 1회(월) 매수 기준입니다.</div>
+      </div>
 
-  <!-- 스와이프 위치 표시 점 -->
-  <div class="swipe-dots">
-    <div class="swipe-dot active" id="dot-0"></div>
-    <div class="swipe-dot" id="dot-1"></div>
-  </div>
+      <div class="sec-hdr">월 적립 합계</div>
+      <div class="mc">
+        <div class="mc-hdr">
+          <div class="avatar" style="background:#EAF3DE;color:#3B6D11;font-size:15px">月</div>
+          <div class="mc-info">
+            <div class="mc-name">전체 월 자동적립</div>
+            <div class="mc-cost" id="auto-count">-- 건</div>
+          </div>
+          <div class="mc-pnl-wrap">
+            <div class="mc-eval cg" id="auto-total">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-hdr">구성원별 적립 내역</div>
+      <div id="auto-list"></div>
+    </div>
 
   <div class="bottom-bar">
     <span id="last-update">로딩 중...</span>
@@ -307,6 +317,11 @@ const KIND_COLORS = {
 const MEMBER_STYLE = {
   '김학관+이정주': { init:'학', color:'#185FA5', bg:'#E6F1FB' },
   '엄마':          { init:'엄', color:'#534AB7', bg:'#EEEDFE' },
+};
+const AUTO_STYLE = {
+  '김학관': { init:'학', color:'#185FA5', bg:'#E6F1FB' },
+  '이정주': { init:'정', color:'#16A085', bg:'#E3F4F0' },
+  '엄마':   { init:'엄', color:'#534AB7', bg:'#EEEDFE' },
 };
 
 // ── UTILS ──────────────────────────────────────────────
@@ -450,6 +465,45 @@ function renderMembers(d) {
   }).join('');
 }
 
+// ── RENDER: 자동적립 탭 ────────────────────────────────
+function renderAuto(d) {
+  const a = d.autoPlans || { members: [], totalMonthly: 0, count: 0 };
+
+  document.getElementById('auto-total').textContent = fmt(a.totalMonthly) + ' / 월';
+  document.getElementById('auto-count').textContent = a.count + '개 종목';
+
+  const el = document.getElementById('auto-list');
+  if (!a.members.length) {
+    el.innerHTML = '<div class="mc"><div class="mc-section-notop" style="text-align:center;color:var(--text3);font-size:12px">설정된 자동적립 내역이 없습니다.</div></div>';
+    return;
+  }
+
+  el.innerHTML = a.members.map(m => {
+    const st = AUTO_STYLE[m.name] || { init: m.name[0], color:'#185FA5', bg:'#E6F1FB' };
+    const rows = m.items.map(it => `
+      <div class="auto-row">
+        <div class="auto-row-left">
+          <div class="auto-row-name">${it.name}</div>
+          <div class="auto-row-sub">${[it.acct, it.buyDay].filter(Boolean).join(' · ')}</div>
+        </div>
+        <div class="auto-row-amt">${fmt(it.amount)}</div>
+      </div>`).join('');
+
+    return `
+      <div class="mc">
+        <div class="mc-hdr">
+          <div class="avatar" style="background:${st.bg};color:${st.color}">${st.init}</div>
+          <div class="mc-info"><div class="mc-name">${m.name}</div></div>
+          <div class="mc-pnl-wrap">
+            <div class="mc-eval" style="color:${st.color}">${fmt(m.monthly)}</div>
+            <div class="mc-pnl" style="color:var(--text3)">월 적립</div>
+          </div>
+        </div>
+        <div class="mc-section">${rows}</div>
+      </div>`;
+  }).join('');
+}
+
 // ── DATA FETCH ─────────────────────────────────────────
 async function loadData() {
   const btn = document.getElementById('rbtn');
@@ -472,6 +526,7 @@ async function loadData() {
     // 렌더링
     renderTotal(data);
     renderMembers(data);
+    renderAuto(data);
 
     // 상태 업데이트
     document.getElementById('h-date').textContent = data.updatedAt + ' 기준';
@@ -487,7 +542,12 @@ async function loadData() {
   }
 }
 
-// ── UI: 종목 아코디언 ──────────────────────────────────
+// ── UI ─────────────────────────────────────────────────
+function goTab(i) {
+  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
+  document.querySelectorAll('.screen').forEach((s, j) => s.classList.toggle('active', j === i));
+  window.scrollTo(0, 0);
+}
 function togKG(id) {
   const b = document.getElementById('kgbody-' + id);
   const c = document.getElementById('kgchev-' + id);
@@ -495,134 +555,8 @@ function togKG(id) {
   c.classList.toggle('open', o);
 }
 
-// ── TAB & SWIPE ────────────────────────────────────────
-const TOTAL_TABS = 2;
-let curTab = 0;
-
-function goTab(i, animate = true) {
-  if (i < 0 || i >= TOTAL_TABS) return;
-  curTab = i;
-  const wrap = document.getElementById('screens-wrap');
-  wrap.style.transition = animate ? 'transform .3s cubic-bezier(.4,0,.2,1)' : 'none';
-  wrap.style.transform = `translateX(${-i * 100}%)`;
-  // 탭 버튼 활성화
-  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
-  // 점 활성화
-  document.querySelectorAll('.swipe-dot').forEach((d, j) => d.classList.toggle('active', j === i));
-  // 각 스크린 스크롤 맨 위로
-  document.getElementById('s' + i).scrollTop = 0;
-}
-
-// ── SWIPE (터치 제스처) ─────────────────────────────────
-(function initSwipe() {
-  const content = document.getElementById('content');
-  let touchStartX = 0, touchStartY = 0;
-  let touchStartTime = 0;
-  let isDraggingH = false;   // 수평 드래그 중
-  let isDraggingV = false;   // 수직(PTR) 드래그 중
-  let dragDetermined = false; // 방향 확정 여부
-
-  content.addEventListener('touchstart', e => {
-    const t = e.touches[0];
-    touchStartX    = t.clientX;
-    touchStartY    = t.clientY;
-    touchStartTime = Date.now();
-    isDraggingH    = false;
-    isDraggingV    = false;
-    dragDetermined = false;
-  }, { passive: true });
-
-  content.addEventListener('touchmove', e => {
-    const t      = e.touches[0];
-    const dx     = t.clientX - touchStartX;
-    const dy     = t.clientY - touchStartY;
-    const screen = document.getElementById('s' + curTab);
-    const atTop  = screen.scrollTop === 0;
-
-    // 방향 아직 미확정: 수평/수직 중 더 많이 움직인 쪽으로 결정
-    if (!dragDetermined && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
-      dragDetermined = true;
-      isDraggingH = Math.abs(dx) > Math.abs(dy);
-      isDraggingV = !isDraggingH && dy > 0 && atTop;
-    }
-
-    // ── 수평 스와이프: 탭 전환 ──
-    if (isDraggingH) {
-      e.preventDefault();
-      const wrap   = document.getElementById('screens-wrap');
-      const offset = -curTab * 100 + (dx / content.offsetWidth) * 100;
-      // 첫 탭 왼쪽 또는 마지막 탭 오른쪽 초과 시 저항감
-      const bounded = Math.max(
-        -(TOTAL_TABS - 1) * 100 - 20,
-        Math.min(20, offset)
-      );
-      wrap.style.transition = 'none';
-      wrap.style.transform  = `translateX(${bounded}%)`;
-    }
-
-    // ── 수직 당기기: Pull to Refresh ──
-    if (isDraggingV) {
-      const pull = Math.min(dy * 0.5, 60);   // 최대 60px, 저항감
-      const ptr  = document.getElementById('ptr-indicator');
-      const txt  = document.getElementById('ptr-text');
-      ptr.style.height = pull + 'px';
-      txt.textContent  = pull >= 50 ? '↑ 놓으면 새로고침' : '↓ 당겨서 새로고침';
-    }
-  }, { passive: false });
-
-  content.addEventListener('touchend', e => {
-    const dx       = e.changedTouches[0].clientX - touchStartX;
-    const dy       = e.changedTouches[0].clientY - touchStartY;
-    const elapsed  = Date.now() - touchStartTime;
-    const ptr      = document.getElementById('ptr-indicator');
-    const spinner  = document.getElementById('ptr-spinner');
-    const txt      = document.getElementById('ptr-text');
-
-    // ── 수평 스와이프 완료 ──
-    if (isDraggingH) {
-      const threshold = content.offsetWidth * 0.25;  // 25% 이상 또는 빠른 flick
-      const flick     = Math.abs(dx) > 60 && elapsed < 300;
-      if ((dx < -threshold || (flick && dx < 0)) && curTab < TOTAL_TABS - 1) {
-        goTab(curTab + 1);
-      } else if ((dx > threshold || (flick && dx > 0)) && curTab > 0) {
-        goTab(curTab - 1);
-      } else {
-        goTab(curTab);   // 원위치
-      }
-    }
-
-    // ── Pull to Refresh 완료 ──
-    if (isDraggingV) {
-      if (dy >= 100) {
-        // 충분히 당김 → 새로고침
-        ptr.style.height = '44px';
-        spinner.style.display = 'block';
-        txt.style.display     = 'none';
-        loadData().finally(() => {
-          ptr.style.transition = 'height .3s';
-          ptr.style.height     = '0';
-          setTimeout(() => {
-            spinner.style.display = 'none';
-            txt.style.display     = 'block';
-            ptr.style.transition  = '';
-          }, 300);
-        });
-      } else {
-        // 부족 → 원위치
-        ptr.style.transition = 'height .3s';
-        ptr.style.height     = '0';
-        setTimeout(() => { ptr.style.transition = ''; }, 300);
-      }
-    }
-
-    isDraggingH = isDraggingV = dragDetermined = false;
-  }, { passive: true });
-})();
-
 // ── INIT ───────────────────────────────────────────────
 window.addEventListener('load', async () => {
-  // 스크린을 나란히 배치 (flex로 전환)
-  goTab(0, false);
   await loadData();
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
